@@ -2,7 +2,7 @@ Reponses
 
 ```
 
-# TP2 : Service SOAP avec Java (Spring-WS)
+#Service SOAP avec Java (Spring-WS)
 
 
 
