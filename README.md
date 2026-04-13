@@ -1,374 +1,316 @@
-Reponses
+# SOAP — soap-bank
+
+> Service web SOAP simulant un système bancaire minimal, développé avec **Spring Boot** et **Spring-WS** selon l'approche **contract-first**.
+
+---
+
+##  Objectifs du TP
+
+- Comprendre le principe **contract-first** en SOAP (XSD → WSDL → stubs/objets)
+- Déployer et exécuter un service SOAP avec Spring Boot + Spring-WS
+- Tester des opérations SOAP avec **Postman** (requêtes, réponses, erreurs Fault)
+- Observer l'impact du contrat (XSD) sur les messages échangés
+- Enrichir le service avec une nouvelle opération en respectant l'approche contract-first
+
+---
+
+##  Prérequis
+
+| Outil | Version minimale |
+|-------|-----------------|
+| Java JDK | 17+ |
+| Maven | 3.8+ |
+| Postman | Desktop (dernière version) |
+| Git | Toute version récente |
+
+---
+
+##  Installation et lancement
+
+### 1. Forker le dépôt
+
+Forker le dépôt GitLab suivant sur votre compte :
 
 ```
+https://gitlab.com/tps-soa-microservices/soap-bank
+```
 
-#Service SOAP avec Java (Spring-WS)
-
-
-
----
-
-# Partie A : Mise en place du projet
-
-## A.1 Fork et clonage du dépôt
-
-Le projet a été forké sur mon espace Git puis cloné en local.
-
-Commandes utilisées :
+### 2. Cloner votre fork
 
 ```bash
-git clone https://gitlab.com/hiba225/soap-bankk.git
-cd soap-bankk
+git clone https://gitlab.com/<votre-username>/soap-bank.git
+cd soap-bank
+```
 
-
-Le projet a ensuite été ouvert dans l’IDE ( VS Code).
-
----
-
-## A.2 Compilation et démarrage
-
-Compilation du projet :
+### 3. Compiler le projet
 
 ```bash
-mvn clean package
+mvn clean install
+```
 
+> **Note :** La phase de génération de code (via `jaxb2-maven-plugin`) s'exécute automatiquement à la compilation. Elle lit le fichier XSD et génère les classes Java correspondantes dans `target/generated-sources/`.
 
-Lancement de l’application :
+### 4. Lancer l'application
 
 ```bash
 mvn spring-boot:run
-
-
-Résultat :
-
-- Build réussi
-- Démarrage du serveur embarqué Tomcat
-- Application accessible sur le port 8080
-
----
-
-## A.3 Vérification du WSDL
-
-URL testée :
-
-
-http://localhost:8080/ws/bank.wsdl
-
-
-Constat :
-
-- Le WSDL est généré automatiquement par Spring-WS
-- Le document est accessible depuis le navigateur
-- La structure correspond au contrat défini dans le XSD
-
----
-
-# Partie B : Analyse du contrat SOAP
-
-## B.1 Fichier XSD et rôle
-
-Fichier identifié :
-
-
-src/main/resources/bank.xsd
-
-
-### Rôle du XSD
-
-Le fichier XSD définit le contrat du service web selon l’approche **contract-first**.
-
-Il permet de :
-
-- Définir la structure des messages SOAP
-- Spécifier les types simples et complexes
-- Fixer le namespace du service
-- Générer automatiquement les classes Java via JAXB
-
-### Chaîne de génération
-
-
-XSD → Génération JAXB → Implémentation Java → WSDL généré automatiquement
-
-
----
-
-## B.2 Structure des messages
-
-### 1. AccountType (type complexe)
-
-| Champ      | Type         |
-|------------|-------------|
-| accountId  | xsd:string  |
-| owner      | xsd:string  |
-| balance    | xsd:decimal |
-| currency   | xsd:string  |
-
----
-
-### 2. GetAccountRequest
-
-- accountId : xsd:string
-
-### 3. GetAccountResponse
-
-- account : AccountType
-
----
-
-### 4. DepositRequest
-
-- accountId : xsd:string  
-- amount : xsd:decimal  
-
-### 5. DepositResponse
-
-- newBalance : xsd:decimal  
-
----
-
-## B.3 Analyse du WSDL
-
-### Namespace
-
-
-http://example.com/bank
-
-
-Permet d’identifier de manière unique le service.
-
----
-
-### PortType
-
-Nom : `BankPort`
-
-Opérations disponibles :
-
-- GetAccount
-- Deposit
-
----
-
-### Binding
-
-- Version : SOAP 1.1  
-- Style : document  
-- Encoding : literal  
-- Transport : HTTP  
-
----
-
-### Endpoint
-
-
-http://localhost:8080/ws
-
-
-Un point d’entrée unique pour toutes les opérations.
-
----
-
-# Architecture du projet
-
-## Fichiers principaux
-
-### bank.xsd
-Définit la structure des messages SOAP.
-
-### WebServiceConfig.java
-- Configuration Spring-WS  
-- Enregistrement du servlet SOAP  
-- Génération automatique du WSDL  
-
-### BankEndpoint.java
-- Exposition des opérations SOAP  
-- Utilisation de l’annotation `@PayloadRoot`
-
-### BankService.java
-- Implémentation de la logique métier  
-- Gestion des comptes en mémoire  
-
----
-
-## Classes générées automatiquement
-
-Situées dans :
-
-
-target/generated-sources/jaxb/
-
-
-Exemples :
-
-- GetAccountRequest
-- GetAccountResponse
-- DepositRequest
-- DepositResponse
-- AccountType
-
----
-
-# Comptes de test
-
-| Account ID | Owner | Balance | Currency |
-|------------|--------|----------|----------|
-| A100 | Alice | 150.00 | TND |
-| B200 | Bob | 80.50 | TND |
-
----
-
-# Partie C : Tests avec Postman
-
-## Configuration
-
-- Method : POST  
-- URL : http://localhost:8080/ws  
-- Header : Content-Type: text/xml; charset=utf-8  
-- Body : raw (XML)  
-
----
-
-## C.1 Test GetAccount (A100)
-
-Résultat :
-
-- Les informations du compte sont correctement retournées  
-- Structure conforme au XSD  
-- Données cohérentes  
-
----
-
-## C.2 Test Deposit (20.00 sur A100)
-
-Résultat :
-
-- Nouveau solde : 170.00  
-- Élément newBalance présent dans la réponse  
-- Traitement correct côté service  
-
----
-
-## C.3 Tests SOAP Fault
-
-### Cas 1 : Montant négatif
-
-- faultcode : Client  
-- faultstring : Amount must be > 0  
-
----
-
-### Cas 2 : Compte inexistant
-
-- faultcode : Client  
-- faultstring : Unknown accountId  
-
-Les exceptions Java sont automatiquement transformées en SOAP Fault par Spring-WS.
-
----
-
-# Partie D : Ajout d’une nouvelle fonctionnalité
-
-## Fonctionnalité choisie : Withdraw
-
-Permet de retirer un montant d’un compte bancaire.
-
----
-
-## D.1 Modification du XSD
-
-Ajout des éléments :
-
-- WithdrawRequest  
-  - accountId  
-  - amount  
-
-- WithdrawResponse  
-  - newBalance  
-
-Après modification :
-
-```bash
-mvn clean package
-
-
-Classes générées automatiquement :
-
-- WithdrawRequest.java  
-- WithdrawResponse.java  
-
----
-
-## D.2 Implémentation
-
-### Dans BankService
-
-Ajout de la méthode `withdraw()` :
-
-- Validation du montant (> 0)  
-- Vérification de l’existence du compte  
-- Vérification du solde suffisant  
-- Mise à jour du solde  
-- Retour du nouveau solde  
-
-Création d’une exception personnalisée :
-
-- InsufficientBalanceException  
-
----
-
-### Dans BankEndpoint
-
-Ajout de la méthode :
-
-```java
-@PayloadRoot(namespace = NAMESPACE_URI, localPart = "WithdrawRequest")
-
-
-Cette méthode appelle le service métier et retourne un objet `WithdrawResponse`.
-
----
-
-## D.3 Tests
-
-### Cas valide
-
-- Retrait de 10.00 sur A100  
-- Nouveau solde correct  
-
-### Cas erreur
-
-- Montant supérieur au solde → SOAP Fault  
-- Montant négatif → SOAP Fault  
-
----
-
-## Vérification finale du WSDL
-
-Le WSDL contient désormais 3 opérations :
-
-- GetAccount  
-- Deposit  
-- Withdraw  
-
-Accessible via :
-
-
-http://localhost:8080/ws/bank.wsdl
-
-
----
-
-# Conclusion
-
-Ce TP m’a permis de :
-
-- Comprendre l’approche contract-first  
-- Utiliser JAXB pour générer automatiquement les classes Java  
-- Implémenter un service SOAP avec Spring-WS  
-- Gérer les erreurs via SOAP Fault  
-- Tester un service SOAP avec Postman  
-- Étendre le service en respectant le contrat défini  
-
-
 ```
 
+L'application démarre sur le port **8080** par défaut.
+
+### 5. Vérifier l'accès au WSDL
+
+Ouvrir un navigateur et accéder à :
+
+```
+http://localhost:8080/ws/bank.wsdl
+```
+
+Le WSDL doit s'afficher correctement — cela confirme que le service est bien démarré.
+
+---
+
+##  Architecture du projet (contract-first)
+
+```
+soap-bank/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── ...endpoint/        ← Endpoint Spring-WS (logique métier)
+│   │   └── resources/
+│   │       └── bank.xsd            ← Contrat XSD (source de vérité)
+│   └── test/
+│       └── ...
+├── pom.xml                         ← Config Maven + plugin JAXB
+└── README.md
+```
+
+### Flux contract-first
+
+```
+bank.xsd  →  JAXB (mvn generate-sources)  →  Classes Java générées
+    ↓
+Spring-WS génère automatiquement le WSDL
+    ↓
+Endpoint implémente la logique métier
+```
+
+---
+
+## Lecture du contrat (XSD & WSDL)
+
+### Fichier XSD (`src/main/resources/bank.xsd`)
+
+Le XSD est la **source de vérité** du service. Il définit :
+- La structure de chaque message (requête et réponse)
+- Les types de données et leurs contraintes (types primitifs, restrictions)
+- Le namespace du service
+
+Les classes Java sont **générées automatiquement** à partir de ce fichier lors de la compilation — toute modification du contrat nécessite une recompilation.
+
+### Opérations disponibles
+
+| Opération | Requête | Réponse |
+|-----------|---------|---------|
+| `GetAccount` | `accountId` (String) | `owner`, `balance`, `currency` |
+| `Deposit` | `accountId` (String), `amount` (Decimal) | `newBalance` |
+| `Withdraw` *(ajouté)* | `accountId` (String), `amount` (Decimal) | `newBalance` |
+
+### Éléments WSDL importants
+
+| Élément | Valeur |
+|---------|--------|
+| **Namespace** | `http://example.com/bank` |
+| **portType** | `BankPort` |
+| **Endpoint (URL)** | `http://localhost:8080/ws` |
+| **Binding** | SOAP 1.1 / document-literal |
+
+---
+
+## Tests Postman
+
+### Configuration
+
+- **Méthode :** `POST`
+- **URL :** `http://localhost:8080/ws`
+- **Header :** `Content-Type: text/xml; charset=utf-8`
+
+---
+
+### Requête `GetAccount`
+
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:bank="http://example.com/bank">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <bank:getAccountRequest>
+      <bank:accountId>A100</bank:accountId>
+    </bank:getAccountRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+```
+
+**Réponse attendue :**
+```xml
+<SOAP-ENV:Envelope ...>
+  <SOAP-ENV:Body>
+    <ns2:getAccountResponse ...>
+      <ns2:owner>Alice</ns2:owner>
+      <ns2:balance>1000.00</ns2:balance>
+      <ns2:currency>EUR</ns2:currency>
+    </ns2:getAccountResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+---
+
+### Requête `Deposit`
+
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:bank="http://example.com/bank">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <bank:depositRequest>
+      <bank:accountId>A100</bank:accountId>
+      <bank:amount>20.00</bank:amount>
+    </bank:depositRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+```
+
+**Réponse attendue :**
+```xml
+<SOAP-ENV:Envelope ...>
+  <SOAP-ENV:Body>
+    <ns2:depositResponse ...>
+      <ns2:newBalance>1020.00</ns2:newBalance>
+    </ns2:depositResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+---
+
+### Requête `Withdraw` *(opération ajoutée)*
+
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:bank="http://example.com/bank">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <bank:withdrawRequest>
+      <bank:accountId>A100</bank:accountId>
+      <bank:amount>50.00</bank:amount>
+    </bank:withdrawRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+```
+
+---
+
+### Cas d'erreur — SOAP Fault
+
+**Exemple : montant négatif**
+```xml
+<soapenv:Envelope ...>
+  <soapenv:Body>
+    <bank:depositRequest>
+      <bank:accountId>A100</bank:accountId>
+      <bank:amount>-10.00</bank:amount>
+    </bank:depositRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+```
+
+**Réponse SOAP Fault :**
+```xml
+<SOAP-ENV:Envelope ...>
+  <SOAP-ENV:Body>
+    <SOAP-ENV:Fault>
+      <faultcode>SOAP-ENV:Server</faultcode>
+      <faultstring>Le montant doit être positif</faultstring>
+    </SOAP-ENV:Fault>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+> D'autres cas d'erreur possibles : compte inexistant (`ACCOUNT_NOT_FOUND`), solde insuffisant lors d'un retrait (`INSUFFICIENT_FUNDS`).
+
+---
+
+##  Fonctionnalité ajoutée : `Withdraw`
+
+### Description
+
+L'opération `Withdraw` permet d'effectuer un **retrait** sur un compte bancaire existant. Elle vérifie que :
+- Le compte existe
+- Le montant est strictement positif
+- Le solde est suffisant
+
+### Fichiers modifiés
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/main/resources/bank.xsd` | Ajout de `withdrawRequest` et `withdrawResponse` |
+| `BankEndpoint.java` | Ajout de la méthode `withdraw()` annotée `@PayloadRoot` |
+| `BankService.java` | Implémentation de la logique de retrait avec validation |
+
+### Éléments XSD ajoutés
+
+```xml
+<xs:element name="withdrawRequest">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element name="accountId" type="xs:string"/>
+      <xs:element name="amount"    type="xs:decimal"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<xs:element name="withdrawResponse">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element name="newBalance" type="xs:decimal"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+```
+
+---
+
+##  Livrables
+
+```
+livrables/
+├── captures/
+│   ├── getaccount_ok.png          ← GetAccount A100 — réponse OK
+│   ├── deposit_ok.png             ← Deposit A100 +20.00 — nouveau solde
+│   ├── fault_montant_negatif.png  ← Deposit montant négatif — SOAP Fault
+│   ├── withdraw_ok.png            ← Withdraw A100 -50.00 — nouveau solde
+│   └── fault_solde_insuffisant.png← Withdraw trop élevé — SOAP Fault
+├── postman_collection.json        ← Export collection Postman
+└── REPONSES.md                    ← Réponses à la partie Analyse
+```
+
+---
+
+## Auteur
+
+| Champ | Valeur |
+|-------|--------|
+| Nom | *[Votre nom]* |
+| Groupe | *[Votre groupe]* |
+| Dépôt GitLab | *[URL de votre fork]* |
+
+---
+
+##  Ressources
+
+- [Documentation Spring-WS](https://docs.spring.io/spring-ws/docs/current/reference/)
+- [W3C — SOAP 1.1](https://www.w3.org/TR/2000/NOTE-SOAP-20000508/)
+- [Tutoriel JAXB](https://jakarta.ee/specifications/xml-binding/)
+- [Postman — SOAP requests](https://learning.postman.com/docs/sending-requests/soap/making-soap-requests/)
